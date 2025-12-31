@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+/* ARIA Surgical Command Center - Custom CSS Variables */
+:root {
+  /* Surgical dark theme colors */
+  --surgical-bg: #0a0f1a;
+  --surgical-panel: #111827;
+  --surgical-border: #1f2937;
+  --surgical-accent: #10b981;
+  --surgical-warning: #f59e0b;
+  --surgical-danger: #ef4444;
+  --surgical-info: #3b82f6;
+
+  /* Alert priority colors */
+  --alert-critical: #dc2626;
+  --alert-warning: #f59e0b;
+  --alert-info: #3b82f6;
+  --alert-success: #10b981;
+
+  /* Typography */
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Global styles */
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--surgical-bg);
+  color: #e5e7eb;
+}
+
+/* Custom scrollbar for surgical theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surgical-panel);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surgical-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #374151;
+}
+
+/* Alert pulse animation */
+@keyframes pulse-critical {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+  }
+  50% {
+    opacity: 0.9;
+    box-shadow: 0 0 0 8px rgba(220, 38, 38, 0);
+  }
+}
+
+@keyframes pulse-warning {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5);
+  }
+  50% {
+    opacity: 0.9;
+    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+  }
+}
+
+.alert-critical {
+  animation: pulse-critical 2s infinite;
+}
+
+.alert-warning {
+  animation: pulse-warning 3s infinite;
+}
+
+/* Gauge animations */
+@keyframes gauge-fill {
+  from {
+    stroke-dashoffset: 283;
+  }
+}
+
+/* 3D canvas container */
+.brain-canvas {
+  touch-action: none;
+}
+
+/* Video overlay styles */
+.video-overlay {
+  pointer-events: none;
+}
+
+/* Role-specific theme overrides */
+.role-surgeon {
+  --accent-color: #10b981;
+}
+
+.role-nurse {
+  --accent-color: #3b82f6;
+}
+
+.role-trainee {
+  --accent-color: #8b5cf6;
+}
+
+/* Responsive breakpoints for wall display */
+@media (min-width: 3840px) {
+  html {
+    font-size: 24px;
+  }
+}
+
+@media (min-width: 2560px) and (max-width: 3839px) {
+  html {
+    font-size: 20px;
+  }
+}
+
+@media (min-width: 1920px) and (max-width: 2559px) {
+  html {
+    font-size: 18px;
+  }
+}
+
+/* Tablet optimizations */
+@media (max-width: 1024px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+/* Connection status indicator */
+.connection-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.connection-dot.connected {
+  background-color: var(--alert-success);
+  box-shadow: 0 0 8px var(--alert-success);
+}
+
+.connection-dot.disconnected {
+  background-color: var(--alert-danger);
+  box-shadow: 0 0 8px var(--alert-danger);
+}
+
+.connection-dot.connecting {
+  background-color: var(--alert-warning);
+  animation: pulse-warning 1s infinite;
+}

@@ -1,0 +1,31 @@
+# ARIA Surgical Command Center - Backend Dependencies
+# ===================================================
+
+# Web Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# WebSocket & Async
+websockets>=12.0
+python-multipart>=0.0.6
+
+# Voice Services
+elevenlabs>=1.0.0
+pyttsx3>=2.90
+
+# Vision & Image Processing (from parent project)
+opencv-python>=4.8.0
+numpy>=1.24.0
+Pillow>=10.0.0
+
+# Anthropic API (for Claude Vision)
+anthropic>=0.39.0
+
+# Async utilities
+aiofiles>=23.2.0
+asyncio-throttle>=1.0.2
+
+# Environment & Configuration
+python-dotenv>=1.0.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
