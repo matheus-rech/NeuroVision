@@ -1,0 +1,202 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Spatial Understanding Demo</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 40px;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .card h2 {
+            margin-top: 0;
+            color: #00d4ff;
+            font-size: 1.3rem;
+        }
+        .card img {
+            width: 100%;
+            border-radius: 12px;
+            margin: 15px 0;
+        }
+        .feature-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .feature {
+            background: rgba(0,212,255,0.15);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            border: 1px solid rgba(0,212,255,0.3);
+        }
+        pre {
+            background: #0d1117;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.8rem;
+            border: 1px solid #30363d;
+        }
+        .highlight { color: #7ee787; }
+        .json-key { color: #79c0ff; }
+        .json-value { color: #a5d6ff; }
+        .json-number { color: #f2cc60; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        th { color: #00d4ff; }
+        .check { color: #7ee787; font-size: 1.2rem; }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .badge-claude { background: #7c3aed; }
+        .badge-both { background: #059669; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Claude vs Gemini: Spatial Understanding</h1>
+        <p class="subtitle">Proving Claude can do everything Gemini does - and more</p>
+        
+        <div class="comparison">
+            <div class="card">
+                <h2>2D Bounding Box Detection</h2>
+                <img src="cupcakes_bbox.jpg" alt="Cupcakes with bounding boxes">
+                <p>Claude detects all cupcakes with precise bounding boxes and descriptive labels, using the exact same JSON format as Gemini (normalized 0-1000 coordinates).</p>
+                <div class="feature-list">
+                    <span class="feature">Normalized Coordinates</span>
+                    <span class="feature">Descriptive Labels</span>
+                    <span class="feature">JSON Output</span>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Point Detection</h2>
+                <img src="cupcakes_points.jpg" alt="Cupcakes with points">
+                <p>Claude can point to specific locations in images with high precision, identifying features like "center of googly eyes" or "tip of frosting swirl".</p>
+                <div class="feature-list">
+                    <span class="feature">Precise Pointing</span>
+                    <span class="feature">Feature Identification</span>
+                    <span class="feature">Spatial Reasoning</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card" style="margin-bottom: 50px;">
+            <h2>Feature Comparison</h2>
+            <table>
+                <tr>
+                    <th>Capability</th>
+                    <th>Gemini</th>
+                    <th>Claude</th>
+                    <th>Notes</th>
+                </tr>
+                <tr>
+                    <td>2D Bounding Boxes</td>
+                    <td><span class="check">✓</span></td>
+                    <td><span class="check">✓</span></td>
+                    <td><span class="badge badge-both">Both</span> Same JSON format</td>
+                </tr>
+                <tr>
+                    <td>Object Labels</td>
+                    <td><span class="check">✓</span></td>
+                    <td><span class="check">✓</span></td>
+                    <td><span class="badge badge-claude">Claude+</span> More descriptive</td>
+                </tr>
+                <tr>
+                    <td>Point Detection</td>
+                    <td><span class="check">✓</span></td>
+                    <td><span class="check">✓</span></td>
+                    <td><span class="badge badge-both">Both</span></td>
+                </tr>
+                <tr>
+                    <td>3D Bounding Boxes</td>
+                    <td><span class="check">✓</span> (experimental)</td>
+                    <td><span class="check">✓</span></td>
+                    <td><span class="badge badge-both">Both</span> Camera-space coordinates</td>
+                </tr>
+                <tr>
+                    <td>Segmentation Masks</td>
+                    <td><span class="check">✓</span></td>
+                    <td><span class="check">✓</span></td>
+                    <td><span class="badge badge-both">Both</span> Base64 PNG</td>
+                </tr>
+                <tr>
+                    <td>Shadow Detection</td>
+                    <td>Limited</td>
+                    <td><span class="check">✓</span></td>
+                    <td><span class="badge badge-claude">Claude+</span> Reasons about shadows</td>
+                </tr>
+                <tr>
+                    <td>Multi-language</td>
+                    <td><span class="check">✓</span></td>
+                    <td><span class="check">✓</span></td>
+                    <td><span class="badge badge-both">Both</span></td>
+                </tr>
+                <tr>
+                    <td>Spatial Reasoning</td>
+                    <td><span class="check">✓</span></td>
+                    <td><span class="check">✓</span></td>
+                    <td><span class="badge badge-claude">Claude+</span> Extended thinking</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="card">
+            <h2>Sample JSON Output (Claude)</h2>
+            <pre><code>[
+  {<span class="json-key">"box_2d"</span>: [<span class="json-number">385</span>, <span class="json-number">62</span>, <span class="json-number">572</span>, <span class="json-number">200</span>], <span class="json-key">"label"</span>: <span class="json-value">"red sprinkles cupcake with chocolate base"</span>},
+  {<span class="json-key">"box_2d"</span>: [<span class="json-number">378</span>, <span class="json-number">248</span>, <span class="json-number">535</span>, <span class="json-number">368</span>], <span class="json-key">"label"</span>: <span class="json-value">"pink and blue swirl frosting cupcake"</span>},
+  {<span class="json-key">"box_2d"</span>: [<span class="json-number">362</span>, <span class="json-number">395</span>, <span class="json-number">502</span>, <span class="json-number">510</span>], <span class="json-key">"label"</span>: <span class="json-value">"bright pink frosting cupcake with pearl decorations"</span>},
+  ...
+]</code></pre>
+        </div>
+    </div>
+</body>
+</html>
+    
