@@ -187,3 +187,4 @@ secrets.json
 
 # Release archives (contains nested git repo)
 releases/
+.worktrees/
