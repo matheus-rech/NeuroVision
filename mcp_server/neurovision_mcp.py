@@ -55,11 +55,7 @@ except ImportError:
 # MCP SERVER INITIALIZATION
 # =============================================================================
 
-mcp = FastMCP(
-    "NeuroVision",
-    description="AI-powered neurosurgical vision system with real-time segmentation, "
-                "Claude Vision integration, and surgical robotics support."
-)
+mcp = FastMCP("NeuroVision")
 
 # =============================================================================
 # CONSTANTS AND CONFIGURATION
