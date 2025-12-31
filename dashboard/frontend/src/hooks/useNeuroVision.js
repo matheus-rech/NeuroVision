@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 
 // Default WebSocket URL - connects to ARIA backend
-const DEFAULT_WS_URL = 'ws://localhost:8000/ws/aria';
+const DEFAULT_WS_URL = 'ws://localhost:8000/ws';
 
 // Message types from backend
 const MESSAGE_TYPES = {

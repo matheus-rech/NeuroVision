@@ -21,7 +21,7 @@ import { RoleSelector } from './components/RoleSelector';
 import { useNeuroVision } from './hooks/useNeuroVision';
 
 // WebSocket URL - can be configured via environment variable
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/aria';
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
 
 /**
  * Header component with branding and controls
