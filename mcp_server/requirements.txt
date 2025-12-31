@@ -1,0 +1,13 @@
+# NeuroVision MCP Server Requirements
+# =====================================
+
+# MCP SDK
+mcp>=1.0.0
+
+# NeuroVision core dependencies
+opencv-python>=4.8.0
+numpy>=1.24.0
+pillow>=10.0.0
+
+# Claude API (for vision analysis)
+anthropic>=0.18.0

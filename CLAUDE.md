@@ -93,6 +93,30 @@ from neurovision.vision import NeuroimagingSegmenter
 | Safety alerts | <100ms | Voice-ready messages |
 | Memory baseline | ~200MB | Base system |
 
+## MCP Server
+
+NeuroVision includes an MCP server to expose its capabilities to Claude Desktop and other LLMs.
+
+```bash
+# Install to Claude Desktop
+./mcp_server/install_to_claude_desktop.sh $ANTHROPIC_API_KEY
+
+# Or manually run
+python mcp_server/neurovision_mcp.py
+```
+
+**Available MCP Tools:**
+| Tool | Description | Offline |
+|------|-------------|---------|
+| `analyze_image` | Full Claude Vision analysis | No |
+| `segment_image` | Fast local segmentation (36+ FPS) | Yes |
+| `assess_safety` | OR safety assessment | No |
+| `detect_structures` | Anatomical structure detection | Partial |
+| `detect_instruments` | Surgical instrument tracking | No |
+| `plan_trajectory` | Trajectory planning | Yes |
+| `assess_technique` | Training evaluation | No |
+| `get_system_status` | Check capabilities | Yes |
+
 ## Implementation Notes
 
 - Use async/await patterns for streaming (`async for result in system.analyze_stream()`)
