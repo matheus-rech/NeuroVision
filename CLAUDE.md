@@ -123,3 +123,109 @@ python mcp_server/neurovision_mcp.py
 - Local segmentation runs independently of Claude API for real-time performance
 - Analysis fusion combines fast local results with slower Claude insights
 - Training module API defined in `src/training/__init__.py`, implementation in `src/core/`
+
+---
+
+## Surgical Command Center Dashboard (ARIA)
+
+The Surgical Command Center is a real-time web dashboard for neurosurgical monitoring with AI-powered voice alerts. Codename: **ARIA** (Adaptive Real-time Intelligent Assistant).
+
+### Quick Start
+
+```bash
+# Navigate to dashboard
+cd dashboard
+
+# Copy environment template and add your API keys
+cp .env.example .env
+nano .env  # Add ANTHROPIC_API_KEY
+
+# Run the demo (starts backend + frontend + opens browser)
+./run_demo.sh
+```
+
+### Dashboard Architecture
+
+```
+dashboard/
+├── backend/               # FastAPI + WebSocket server
+│   ├── main.py           # Entry point (port 8000)
+│   ├── camera_service.py # OpenCV capture
+│   ├── analysis_service.py # NeuroVision integration
+│   └── voice_service.py  # ARIA voice (ElevenLabs + pyttsx3)
+│
+├── frontend/             # React 18 + Vite
+│   └── src/
+│       ├── components/   # VideoFeed, BrainModel3D, AlertPanel
+│       └── hooks/        # useNeuroVision, useWebSocket
+│
+├── .env.example          # Environment template
+├── run_demo.sh           # One-click demo runner
+└── README.md             # Detailed documentation
+```
+
+### Development Commands
+
+```bash
+# Backend only (for development)
+cd dashboard/backend
+source venv/bin/activate
+uvicorn main:app --reload --port 8000
+
+# Frontend only (for development)
+cd dashboard/frontend
+npm run dev
+
+# Full demo with auto-browser
+./run_demo.sh
+
+# Without opening browser
+./run_demo.sh --no-browser
+```
+
+### Key Features
+
+| Feature | Description | Technology |
+|---------|-------------|------------|
+| **Live Video** | Real-time camera with AI overlays | OpenCV + WebSocket |
+| **Voice Alerts** | Smart prioritized voice feedback | ElevenLabs / pyttsx3 |
+| **3D Brain** | Interactive trajectory visualization | Three.js / React Three Fiber |
+| **Role Views** | Surgeon / Nurse / Trainee interfaces | React state management |
+
+### Voice Priority System
+
+```
+Priority 1 (Critical): Immediate - "Stop. Contamination detected."
+Priority 2 (Warning):  Within 1s - "Vessel, 4 millimeters."
+Priority 3 (Navigation): Queued  - "Entering resection phase."
+Priority 4 (Info):      If idle - "Tumor margin identified."
+```
+
+### WebSocket Protocol
+
+```json
+// Server → Client
+{"type": "frame", "data": "base64...", "overlay": "base64...", "fps": 30}
+{"type": "analysis", "safety_score": 87, "structures": [...], "phase": "resection"}
+{"type": "alert", "priority": "warning", "message": "Vessel, 3mm", "speak": true}
+
+// Client → Server
+{"type": "set_role", "role": "trainee"}
+{"type": "mute_voice", "muted": true}
+```
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ANTHROPIC_API_KEY` | Yes | Claude API for vision analysis |
+| `ELEVENLABS_API_KEY` | No | Premium voice (falls back to local TTS) |
+| `CAMERA_SOURCE` | No | Camera index or RTSP URL (default: 0) |
+
+### Demo Presentation Script
+
+1. **For Administrators (2 min)**: Show role switching, safety metrics
+2. **For Surgeons (3 min)**: Live video overlays, voice alerts, 3D trajectory
+3. **For Academics (5 min)**: Architecture deep-dive, training mode, integration points
+
+See `dashboard/README.md` for detailed demo script with scenarios.
