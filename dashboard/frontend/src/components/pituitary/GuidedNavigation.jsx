@@ -467,4 +467,3 @@ export function GuidedNavigation({
 }
 
 export default GuidedNavigation;
-export { SURGICAL_PHASES };

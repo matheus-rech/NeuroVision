@@ -16,6 +16,7 @@ import { VideoFeed } from './components/VideoFeed';
 import { BrainModel3D } from './components/BrainModel3D';
 import { PituitaryModel3D } from './components/pituitary/PituitaryModel3D';
 import { HandTracker, INSTRUMENTS } from './components/pituitary/HandTracker';
+import { GuidedNavigation } from './components/pituitary/GuidedNavigation';
 import { AlertPanel } from './components/AlertPanel';
 import { MetricsDashboard } from './components/MetricsDashboard';
 import { RoleSelector } from './components/RoleSelector';
@@ -253,6 +254,12 @@ function App() {
   const [instrumentPosition, setInstrumentPosition] = useState({ x: 0, y: 0, z: 2 });
   const [isInstrumentActive, setIsInstrumentActive] = useState(false);
 
+  // Guided navigation state for camera control
+  const [guidedPhase, setGuidedPhase] = useState(1);
+  const [cameraPosition, setCameraPosition] = useState(null);
+  const [cameraTarget, setCameraTarget] = useState(null);
+  const [criticalStructures, setCriticalStructures] = useState([]);
+
   // Handle hand tracking updates
   const handleHandUpdate = useCallback((data) => {
     setInstrumentPosition(data.position);
@@ -271,6 +278,29 @@ function App() {
       console.warn('[AR] COLLISION WARNING:', collision.structureName);
       // Could trigger voice alert here via WebSocket
     }
+  }, []);
+
+  // Guided navigation handlers
+  const handlePhaseChange = useCallback((phaseId) => {
+    setGuidedPhase(phaseId);
+    console.log('[Navigation] Phase changed to:', phaseId);
+  }, []);
+
+  const handleCameraChange = useCallback((camera, viewMode) => {
+    if (camera) {
+      setCameraPosition(camera.position);
+      setCameraTarget(camera.target);
+      console.log('[Navigation] Camera moving to:', camera.position);
+    }
+  }, []);
+
+  const handleHighlightChange = useCallback((structures) => {
+    // Structure highlighting can be implemented in future iteration
+    console.log('[Navigation] Highlight structures:', structures);
+  }, []);
+
+  const handleCriticalChange = useCallback((structures) => {
+    setCriticalStructures(structures || []);
   }, []);
 
   // WebSocket connection and state
@@ -396,12 +426,15 @@ function App() {
                 {viewMode === 'pituitary' ? (
                   <PituitaryModel3D
                     tumorCase={tumorCase}
-                    currentPhase={Math.floor(displayData.phaseProgress / 100 * 6)}
+                    currentPhase={guidedPhase}
                     showLabels={true}
                     instrumentType={instrumentType}
                     instrumentPosition={instrumentPosition}
                     isInstrumentActive={isInstrumentActive}
                     onCollision={handleCollision}
+                    cameraPosition={cameraPosition}
+                    cameraTarget={cameraTarget}
+                    criticalStructures={criticalStructures}
                     className={config.brainSize}
                   />
                 ) : (
@@ -417,23 +450,33 @@ function App() {
                 )}
               </div>
 
-              {/* Bottom row: Alerts + Metrics */}
+              {/* Bottom row: Navigation/Alerts + Metrics */}
               <div className={`grid ${config.bottomLayout} gap-4`} style={{ height: '35%' }}>
-                {/* Alert Panel */}
-                <AlertPanel
-                  alerts={displayData.alerts}
-                  onAcknowledge={acknowledgeAlert}
-                  onClearAll={clearAlerts}
-                  maxVisible={currentRole === 'nurse' ? 15 : 8}
-                  compact={currentRole === 'surgeon'}
-                  role={currentRole}
-                  className="h-full"
-                />
+                {/* Guided Navigation (pituitary) or Alert Panel (general) */}
+                {viewMode === 'pituitary' ? (
+                  <GuidedNavigation
+                    onPhaseChange={handlePhaseChange}
+                    onCameraChange={handleCameraChange}
+                    onHighlightChange={handleHighlightChange}
+                    onCriticalChange={handleCriticalChange}
+                    className="h-full overflow-y-auto"
+                  />
+                ) : (
+                  <AlertPanel
+                    alerts={displayData.alerts}
+                    onAcknowledge={acknowledgeAlert}
+                    onClearAll={clearAlerts}
+                    maxVisible={currentRole === 'nurse' ? 15 : 8}
+                    compact={currentRole === 'surgeon'}
+                    role={currentRole}
+                    className="h-full"
+                  />
+                )}
 
                 {/* Metrics Dashboard */}
                 <MetricsDashboard
                   safetyScore={displayData.safetyScore}
-                  currentPhase={displayData.currentPhase}
+                  currentPhase={viewMode === 'pituitary' ? `Phase ${guidedPhase}` : displayData.currentPhase}
                   phaseProgress={displayData.phaseProgress}
                   techniqueScore={displayData.techniqueScore}
                   coachingMessage={coachingMessage}
