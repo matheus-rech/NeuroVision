@@ -229,3 +229,72 @@ Priority 4 (Info):      If idle - "Tumor margin identified."
 3. **For Academics (5 min)**: Architecture deep-dive, training mode, integration points
 
 See `dashboard/README.md` for detailed demo script with scenarios.
+
+---
+
+## Pituitary Surgery Training Module
+
+Interactive AR-based surgical training for transsphenoidal endonasal pituitary surgery.
+
+### Quick Start
+
+```bash
+# Start dashboard (Pituitary mode is default)
+./dashboard/run_demo.sh
+
+# Open http://localhost:3000
+# Click "Pituitary" toggle in header
+# Allow camera permission for hand tracking
+```
+
+### Features
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **3D Anatomy** | Modular pituitary region structures | ✅ Placeholder geometry |
+| **Hand Tracking** | MediaPipe gesture-to-instrument mapping | ✅ Working |
+| **Virtual Instruments** | Curette, suction, forceps, dissector | ✅ Working |
+| **Collision Detection** | Warnings for carotids, optic chiasm | ✅ Working |
+| **Guided Navigation** | 6-phase surgical walkthrough | ✅ Working |
+| **Voice Narration** | ElevenLabs narration per phase | ✅ Working |
+
+### Hand Gesture Mapping
+
+| Gesture | Instrument | Use Case |
+|---------|------------|----------|
+| 👌 Pinch | Ring Curette | Tumor removal |
+| 👆 Point | Suction Aspirator | Fluid/debris removal |
+| ✋ Open Palm | Endoscope | View control |
+| 🤏 Two-Finger Pinch | Bipolar Forceps | Hemostasis |
+
+### Surgical Phases (Guided Navigation)
+
+1. **Nasal Entry** - Middle turbinate, septum identification
+2. **Sphenoidotomy** - Sphenoid ostium, anterior wall removal
+3. **Sellar Floor** - Carotid prominences, safe corridor
+4. **Dural Opening** - Dura incision, tumor capsule
+5. **Tumor Resection** - Ring curette technique, margin preservation
+6. **Closure** - Fat graft, reconstruction
+
+### File Structure
+
+```
+dashboard/frontend/src/components/pituitary/
+├── PituitaryModel3D.jsx    # Main 3D scene with anatomy
+├── HandTracker.jsx         # MediaPipe hand detection
+├── SurgicalInstruments.jsx # Virtual instrument models
+└── GuidedNavigation.jsx    # Phase walkthrough + voice
+```
+
+### Training Resources
+
+- **PitVQA Dataset**: 25 real endoscopic pituitary surgery videos (109K frames, 884K Q&A pairs)
+- **Design Doc**: `docs/plans/2025-01-01-pituitary-surgery-training-design.md`
+
+### Collision Zones
+
+| Structure | Distance | Warning |
+|-----------|----------|---------|
+| Carotid Arteries | <3mm | 🔴 DANGER |
+| Optic Chiasm | <3mm | 🔴 DANGER |
+| Tumor Margin | <2mm | 🟡 CAUTION |

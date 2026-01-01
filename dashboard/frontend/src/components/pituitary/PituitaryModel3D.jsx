@@ -13,7 +13,7 @@
  * TODO: Replace with GLTF models from above sources
  */
 
-import { useRef, useState, useMemo, useEffect, useCallback } from 'react';
+import { useRef, useState, useMemo, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, Line, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
@@ -447,12 +447,46 @@ function SurgicalTrajectory({ currentPhase = 0, totalPhases = 6 }) {
 }
 
 /**
- * Scene lighting and controls
+ * Scene lighting and controls with animated camera
  */
-function SceneSetup({ children, viewMode = 'overview' }) {
+function SceneSetup({
+  children,
+  viewMode = 'overview',
+  cameraPosition = null,
+  cameraTarget = null,
+}) {
   const { camera } = useThree();
+  const targetRef = useRef(new THREE.Vector3(0, 0, 0));
+  const controlsRef = useRef();
 
+  // Smooth camera animation
+  useFrame(() => {
+    if (cameraPosition && cameraTarget) {
+      // Animate camera position
+      camera.position.lerp(
+        new THREE.Vector3(cameraPosition[0], cameraPosition[1], cameraPosition[2]),
+        0.05
+      );
+
+      // Animate look target
+      targetRef.current.lerp(
+        new THREE.Vector3(cameraTarget[0], cameraTarget[1], cameraTarget[2]),
+        0.05
+      );
+
+      // Update controls target for smooth orbit
+      if (controlsRef.current) {
+        controlsRef.current.target.copy(targetRef.current);
+      }
+
+      camera.lookAt(targetRef.current);
+    }
+  });
+
+  // Set camera based on viewMode when no external control
   useEffect(() => {
+    if (cameraPosition && cameraTarget) return; // External control active
+
     switch (viewMode) {
       case 'endoscope':
         camera.position.set(0, 0, 4);
@@ -470,7 +504,7 @@ function SceneSetup({ children, viewMode = 'overview' }) {
         camera.position.set(2, 2, 3);
         camera.lookAt(0, 0, 0);
     }
-  }, [camera, viewMode]);
+  }, [camera, viewMode, cameraPosition, cameraTarget]);
 
   return (
     <>
@@ -480,10 +514,11 @@ function SceneSetup({ children, viewMode = 'overview' }) {
       <pointLight position={[0, 2, 2]} intensity={0.3} color="#fff" />
 
       <OrbitControls
+        ref={controlsRef}
         enablePan={true}
         enableZoom={true}
         enableRotate={true}
-        minDistance={1}
+        minDistance={0.5}
         maxDistance={10}
       />
 
@@ -557,6 +592,9 @@ export function PituitaryModel3D({
   instrumentPosition = { x: 0, y: 0, z: 2 },
   isInstrumentActive = false,
   onCollision = null,
+  // Camera control (from guided navigation)
+  cameraPosition = null,
+  cameraTarget = null,
 }) {
   const [internalViewMode, setInternalViewMode] = useState(viewMode);
   const [collision, setCollision] = useState({ isColliding: false });
@@ -590,7 +628,11 @@ export function PituitaryModel3D({
         camera={{ fov: 50, near: 0.1, far: 100 }}
         gl={{ antialias: true, alpha: true }}
       >
-        <SceneSetup viewMode={internalViewMode}>
+        <SceneSetup
+          viewMode={internalViewMode}
+          cameraPosition={cameraPosition}
+          cameraTarget={cameraTarget}
+        >
           {/* Anatomical structures */}
           {visibleStructures.skullBase && (
             <SkullBase opacity={structureOpacity.skullBase} showLabels={showLabels} />
