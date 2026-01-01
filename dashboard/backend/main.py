@@ -44,6 +44,18 @@ try:
 except ImportError:
     pass
 
+# Voice service integration
+from voice_service import (
+    get_voice_service,
+    init_voice_service,
+    VoiceService,
+    AlertPriority as VoicePriority,
+    SurgicalAlerts,
+)
+
+# Global voice service instance
+voice_service: Optional[VoiceService] = None
+
 # Configuration from environment
 BACKEND_HOST = os.getenv("BACKEND_HOST", "0.0.0.0")
 BACKEND_PORT = int(os.getenv("BACKEND_PORT", "8000"))
@@ -108,13 +120,43 @@ startup_time = time.time()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifecycle management."""
+    global voice_service
+
     print("\n" + "=" * 50)
     print("ARIA - Surgical Command Center Starting...")
     print("=" * 50)
+
+    # Initialize voice service
+    if VOICE_ENABLED:
+        try:
+            voice_service = init_voice_service()
+            voice_status = "enabled"
+            if voice_service.elevenlabs_client:
+                voice_status += " (ElevenLabs)"
+            elif voice_service.tts_engine:
+                voice_status += " (pyttsx3 fallback)"
+            else:
+                voice_status = "unavailable (no TTS engine)"
+            print(f"Voice Alerts: {voice_status}")
+        except Exception as e:
+            print(f"Voice Alerts: failed to initialize ({e})")
+            voice_service = None
+    else:
+        print("Voice Alerts: disabled")
+
     print(f"\nAPI Docs: http://localhost:{BACKEND_PORT}/docs")
     print(f"WebSocket: ws://localhost:{BACKEND_PORT}/ws")
     print("=" * 50 + "\n")
+
+    # Speak startup message
+    if voice_service and voice_service.elevenlabs_client:
+        voice_service.queue_alert("ARIA surgical assistant ready.", VoicePriority.INFO)
+
     yield
+
+    # Cleanup
+    if voice_service:
+        voice_service.stop()
     print("\n[Shutdown] ARIA shutting down. Goodbye!")
 
 
@@ -202,6 +244,15 @@ async def trigger_alert(request: AlertRequest):
         "timestamp": datetime.now().isoformat()
     }
 
+    # Trigger voice alert if enabled
+    if request.speak and voice_service:
+        voice_priority = VoicePriority(priority)
+        if priority == 1:  # Critical - speak immediately
+            voice_service.speak_immediate(request.message, use_fallback=True)
+        else:
+            voice_service.queue_alert(request.message, voice_priority)
+
+    # Send to connected clients
     for client in connected_clients.values():
         if client.should_receive_alert(priority):
             try:
@@ -209,7 +260,50 @@ async def trigger_alert(request: AlertRequest):
             except:
                 pass
 
-    return {"status": "sent", "recipients": len(connected_clients)}
+    return {"status": "sent", "recipients": len(connected_clients), "voice": request.speak and voice_service is not None}
+
+
+@app.get("/api/voice/status")
+async def get_voice_status():
+    """Get voice service status."""
+    if voice_service:
+        return voice_service.get_status()
+    return {"available": False, "reason": "Voice service not initialized"}
+
+
+@app.post("/api/voice/mute")
+async def mute_voice():
+    """Mute voice alerts."""
+    if voice_service:
+        voice_service.mute()
+        return {"muted": True}
+    raise HTTPException(status_code=503, detail="Voice service not available")
+
+
+@app.post("/api/voice/unmute")
+async def unmute_voice():
+    """Unmute voice alerts."""
+    if voice_service:
+        voice_service.unmute()
+        return {"muted": False}
+    raise HTTPException(status_code=503, detail="Voice service not available")
+
+
+@app.post("/api/voice/speak")
+async def speak_text(text: str, priority: str = "info"):
+    """Speak arbitrary text (for testing)."""
+    if not voice_service:
+        raise HTTPException(status_code=503, detail="Voice service not available")
+
+    priority_map = {"critical": 1, "warning": 2, "navigation": 3, "info": 4}
+    voice_priority = VoicePriority(priority_map.get(priority.lower(), 4))
+
+    if priority.lower() == "critical":
+        success = voice_service.speak_immediate(text, use_fallback=True)
+    else:
+        success = voice_service.queue_alert(text, voice_priority)
+
+    return {"queued": success, "priority": priority}
 
 
 # =============================================================================
@@ -291,18 +385,22 @@ async def stream_data(client: ClientConnection):
 
             await client.websocket.send_json(analysis_message)
 
-            # Random alerts
+            # Random alerts with voice
             if random.random() > 0.95:
                 vessel_proximity = round(random.uniform(2, 5), 1)
+                alert_text = f"Vessel proximity: {vessel_proximity} millimeters"
                 alert_message = {
                     "type": "alert",
                     "priority": "warning",
-                    "message": f"Vessel proximity: {vessel_proximity}mm",
+                    "message": alert_text,
                     "speak": True,
                     "timestamp": datetime.now().isoformat()
                 }
                 if client.should_receive_alert(AlertPriority.WARNING):
                     await client.websocket.send_json(alert_message)
+                    # Trigger voice alert
+                    if voice_service and not client.muted:
+                        voice_service.queue_alert(alert_text, VoicePriority.WARNING)
 
             # Occasionally advance phase
             if random.random() > 0.99:
@@ -322,22 +420,31 @@ async def receive_messages(client: ClientConnection):
     """Receive messages from client."""
     while True:
         try:
-            data = await client.websocket.receive_json()
-            message_type = data.get("type")
+            message = await client.websocket.receive_json()
+            message_type = message.get("type")
+            # Frontend wraps payload in 'data' field
+            payload = message.get("data", message)
 
             if message_type == "set_role":
-                role = data.get("role", "surgeon")
+                role = payload.get("role", "surgeon")
                 if role in ["surgeon", "nurse", "trainee"]:
                     client.role = role
                     await client.websocket.send_json({"type": "role_changed", "role": role})
                     print(f"[WS] Client {client.client_id} role -> {role}")
 
-            elif message_type == "mute_voice":
-                client.muted = data.get("muted", False)
+            elif message_type in ("mute_voice", "set_mute"):
+                client.muted = payload.get("muted", False)
+                # Also update global voice service
+                if voice_service:
+                    if client.muted:
+                        voice_service.mute()
+                    else:
+                        voice_service.unmute()
                 await client.websocket.send_json({"type": "mute_changed", "muted": client.muted})
+                print(f"[WS] Client {client.client_id} mute -> {client.muted}")
 
             elif message_type == "set_mode":
-                client.analysis_mode = data.get("mode", "FULL")
+                client.analysis_mode = payload.get("mode", "FULL")
                 await client.websocket.send_json({"type": "mode_changed", "mode": client.analysis_mode})
 
             elif message_type == "ping":

@@ -11,8 +11,12 @@ const MESSAGE_TYPES = {
   METRICS: 'metrics',
   PHASE: 'phase',
   TRAJECTORY: 'trajectory',
+  ANALYSIS: 'analysis',  // Combined analysis from backend
   CONNECTION: 'connection',
+  CONNECTED: 'connected',
   ROLE_CONFIRMED: 'role_confirmed',
+  ROLE_CHANGED: 'role_changed',
+  MUTE_CHANGED: 'mute_changed',
   ERROR: 'error',
 };
 
@@ -190,18 +194,45 @@ export function useNeuroVision(wsUrl = DEFAULT_WS_URL) {
           break;
 
         case MESSAGE_TYPES.ROLE_CONFIRMED:
+        case MESSAGE_TYPES.ROLE_CHANGED:
           setState(prev => ({
             ...prev,
-            currentRole: data.role,
+            currentRole: message.role || data?.role || prev.currentRole,
           }));
           break;
 
+        case MESSAGE_TYPES.MUTE_CHANGED:
+          setState(prev => ({
+            ...prev,
+            isMuted: message.muted ?? prev.isMuted,
+          }));
+          break;
+
+        case MESSAGE_TYPES.ANALYSIS:
+          // Combined analysis message from ARIA backend
+          setState(prev => ({
+            ...prev,
+            safetyScore: message.safety_score ?? prev.safetyScore,
+            currentPhase: message.phase || prev.currentPhase,
+            phaseProgress: ((message.phase_number || 1) / (message.total_phases || 5)) * 100,
+            trajectory: message.trajectory || prev.trajectory,
+            currentDepth: message.trajectory?.depth_mm ?? prev.currentDepth,
+          }));
+          break;
+
+        case MESSAGE_TYPES.CONNECTED:
+          console.log('[NeuroVision] Welcome:', message.message);
+          break;
+
         case MESSAGE_TYPES.ERROR:
-          console.error('[NeuroVision] Server error:', data.message);
+          console.error('[NeuroVision] Server error:', data?.message || message.message);
           break;
 
         default:
-          console.log('[NeuroVision] Unknown message type:', type);
+          // Don't log for common message types
+          if (!['pong'].includes(type)) {
+            console.log('[NeuroVision] Unhandled message type:', type, message);
+          }
       }
     } catch (error) {
       // Handle binary frame data (base64 encoded image)
