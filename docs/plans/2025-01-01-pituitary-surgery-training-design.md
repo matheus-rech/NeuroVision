@@ -140,9 +140,64 @@ Uses existing `VoiceService` from backend for narration playback.
 
 ---
 
-## Phase 2: DICOM Support (Future)
+## Phase 2: PitVQA Real Surgical Video Integration
 
-After Phase 1 (anatomical model) is complete:
+**Resource Discovered:** [PitVQA Dataset](https://doi.org/10.5522/04/27004666.v2) from National Hospital of Neurology and Neurosurgery, London.
+
+### Dataset Overview
+
+| Metric | Value |
+|--------|-------|
+| Videos | 25 endoscopic pituitary surgeries |
+| Frames | 109,173 (extracted at 1 fps) |
+| Q&A Pairs | 884,242 (~8 per frame) |
+| License | CC BY-NC-ND 4.0 (educational use) |
+| Equipment | Karl Storz HD endoscope |
+
+### Annotation Categories
+
+| Category | Count | Integration Use |
+|----------|-------|-----------------|
+| Surgical Phases | 4 | Auto-phase detection |
+| Surgical Steps | 15 | Detailed navigation |
+| Instruments | 18 | Tool recognition quiz |
+| Instrument Positions | 5 | Technique assessment |
+| Operation Notes | 14 | Context awareness |
+
+### Integration Plan
+
+1. **Video Frame Player**
+   - Display real surgical frames alongside 3D model
+   - Synchronized phase indicators
+   - Frame-by-frame stepping for detailed review
+
+2. **VQA Assessment System**
+   - Load pretrained PitVQA model
+   - Generate questions about current frame
+   - Score trainee responses
+   - Track improvement over time
+
+3. **Phase Auto-Detection**
+   - Use model to detect current surgical phase
+   - Sync 3D guided navigation with video
+   - Provide real-time feedback on phase transitions
+
+4. **Instrument Recognition Quiz**
+   - Show frame, ask "What instrument is being used?"
+   - Multiple choice from 18 known instruments
+   - Track accuracy per instrument type
+
+### GitHub Repository
+
+- **Code:** https://github.com/mobarakol/PitVQA
+- **Paper:** MICCAI 2024
+- **Dependencies:** BLIP, Hugging Face Transformers, timm
+
+---
+
+## Phase 3: DICOM Support (Future)
+
+After Phase 2 (PitVQA integration) is complete:
 
 1. Add DICOM file upload endpoint
 2. Use `cornerstone.js` or `vtk.js` for 3D reconstruction
