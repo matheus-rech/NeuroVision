@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Brain,
   Volume2,
@@ -8,11 +8,14 @@ import {
   WifiOff,
   Maximize,
   RefreshCw,
+  Target,
 } from 'lucide-react';
 
 // Components
 import { VideoFeed } from './components/VideoFeed';
 import { BrainModel3D } from './components/BrainModel3D';
+import { PituitaryModel3D } from './components/pituitary/PituitaryModel3D';
+import { HandTracker, INSTRUMENTS } from './components/pituitary/HandTracker';
 import { AlertPanel } from './components/AlertPanel';
 import { MetricsDashboard } from './components/MetricsDashboard';
 import { RoleSelector } from './components/RoleSelector';
@@ -33,6 +36,8 @@ function Header({
   isMuted,
   onToggleMute,
   onFullscreen,
+  viewMode,
+  onViewModeChange,
 }) {
   return (
     <header className="flex items-center justify-between px-4 py-3 bg-gray-900/80 border-b border-gray-800 backdrop-blur-sm">
@@ -52,6 +57,32 @@ function Header({
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-800/50 border border-gray-700">
           <div className={`connection-dot ${connectionStatus}`} />
           <span className="text-xs text-gray-400 capitalize">{connectionStatus}</span>
+        </div>
+
+        {/* View mode toggle */}
+        <div className="flex items-center gap-1 p-1 rounded-lg bg-gray-800/50 border border-gray-700">
+          <button
+            onClick={() => onViewModeChange('general')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              viewMode === 'general'
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : 'text-gray-400 hover:bg-gray-700'
+            }`}
+          >
+            <Brain className="w-4 h-4" />
+            General
+          </button>
+          <button
+            onClick={() => onViewModeChange('pituitary')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              viewMode === 'pituitary'
+                ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                : 'text-gray-400 hover:bg-gray-700'
+            }`}
+          >
+            <Target className="w-4 h-4" />
+            Pituitary
+          </button>
         </div>
       </div>
 
@@ -214,6 +245,33 @@ function useDemoData(isConnected) {
  */
 function App() {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [viewMode, setViewMode] = useState('pituitary'); // 'general' or 'pituitary'
+  const [tumorCase, setTumorCase] = useState('micro'); // 'micro', 'macro', 'invasive'
+
+  // Hand tracking state for AR instruments
+  const [instrumentType, setInstrumentType] = useState(INSTRUMENTS.NONE);
+  const [instrumentPosition, setInstrumentPosition] = useState({ x: 0, y: 0, z: 2 });
+  const [isInstrumentActive, setIsInstrumentActive] = useState(false);
+
+  // Handle hand tracking updates
+  const handleHandUpdate = useCallback((data) => {
+    setInstrumentPosition(data.position);
+    setIsInstrumentActive(true);
+  }, []);
+
+  // Handle instrument changes
+  const handleInstrumentChange = useCallback((instrument) => {
+    setInstrumentType(instrument);
+    console.log('[AR] Instrument changed:', instrument);
+  }, []);
+
+  // Handle collision with critical structures
+  const handleCollision = useCallback((collision) => {
+    if (collision.isColliding) {
+      console.warn('[AR] COLLISION WARNING:', collision.structureName);
+      // Could trigger voice alert here via WebSocket
+    }
+  }, []);
 
   // WebSocket connection and state
   const {
@@ -304,6 +362,8 @@ function App() {
         isMuted={isMuted}
         onToggleMute={toggleMute}
         onFullscreen={handleFullscreen}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
 
       {/* Main content */}
@@ -311,27 +371,50 @@ function App() {
         <DashboardLayout role={currentRole}>
           {(config) => (
             <div className="h-full flex flex-col gap-4">
-              {/* Top row: Video + 3D */}
+              {/* Top row: Video/HandTracker + 3D */}
               <div className={`flex-1 grid ${config.gridTemplate} gap-4 min-h-0`}>
-                {/* Video Feed */}
-                <VideoFeed
-                  frame={currentFrame}
-                  overlays={overlays}
-                  frameRate={frameRate}
-                  role={currentRole}
-                  className={config.videoSize}
-                />
+                {/* Video Feed or Hand Tracker based on view mode */}
+                {viewMode === 'pituitary' ? (
+                  <HandTracker
+                    onHandUpdate={handleHandUpdate}
+                    onInstrumentChange={handleInstrumentChange}
+                    showVideo={true}
+                    showSkeleton={true}
+                    className={config.videoSize}
+                  />
+                ) : (
+                  <VideoFeed
+                    frame={currentFrame}
+                    overlays={overlays}
+                    frameRate={frameRate}
+                    role={currentRole}
+                    className={config.videoSize}
+                  />
+                )}
 
-                {/* 3D Brain Model */}
-                <BrainModel3D
-                  trajectory={trajectory}
-                  entryPoint={entryPoint}
-                  targetPoint={targetPoint}
-                  currentDepth={displayData.currentDepth}
-                  maxDepth={displayData.maxDepth}
-                  role={currentRole}
-                  className={config.brainSize}
-                />
+                {/* 3D Model - switches based on view mode */}
+                {viewMode === 'pituitary' ? (
+                  <PituitaryModel3D
+                    tumorCase={tumorCase}
+                    currentPhase={Math.floor(displayData.phaseProgress / 100 * 6)}
+                    showLabels={true}
+                    instrumentType={instrumentType}
+                    instrumentPosition={instrumentPosition}
+                    isInstrumentActive={isInstrumentActive}
+                    onCollision={handleCollision}
+                    className={config.brainSize}
+                  />
+                ) : (
+                  <BrainModel3D
+                    trajectory={trajectory}
+                    entryPoint={entryPoint}
+                    targetPoint={targetPoint}
+                    currentDepth={displayData.currentDepth}
+                    maxDepth={displayData.maxDepth}
+                    role={currentRole}
+                    className={config.brainSize}
+                  />
+                )}
               </div>
 
               {/* Bottom row: Alerts + Metrics */}

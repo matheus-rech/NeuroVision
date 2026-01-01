@@ -13,10 +13,12 @@
  * TODO: Replace with GLTF models from above sources
  */
 
-import { useRef, useState, useMemo, useEffect } from 'react';
+import { useRef, useState, useMemo, useEffect, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, Line, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
+import { SurgicalInstruments } from './SurgicalInstruments';
+import { INSTRUMENTS } from './HandTracker';
 
 // Anatomical constants (in mm, scaled to scene units)
 const SCALE = 0.05; // 1mm = 0.05 scene units
@@ -493,6 +495,34 @@ function SceneSetup({ children, viewMode = 'overview' }) {
 /**
  * Main PituitaryModel3D component
  */
+// Critical structure positions for collision detection (in scene units)
+const CRITICAL_ZONES = {
+  chiasm: { center: [0, ANATOMY.chiasmHeight * SCALE, -0.1], radius: 0.25 },
+  leftCarotid: { center: [-(ANATOMY.carotidDistance / 2) * SCALE, 0, 0], radius: 0.15 },
+  rightCarotid: { center: [(ANATOMY.carotidDistance / 2) * SCALE, 0, 0], radius: 0.15 },
+};
+
+/**
+ * Check collision between instrument and critical structures
+ */
+function checkCollision(instrumentPos) {
+  for (const [name, zone] of Object.entries(CRITICAL_ZONES)) {
+    const dx = instrumentPos.x - zone.center[0];
+    const dy = instrumentPos.y - zone.center[1];
+    const dz = instrumentPos.z - zone.center[2];
+    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+    if (distance < zone.radius) {
+      return {
+        isColliding: true,
+        structureName: name === 'chiasm' ? 'Optic Chiasm' : name.replace(/([A-Z])/g, ' $1').trim(),
+        distance,
+      };
+    }
+  }
+  return { isColliding: false, structureName: null, distance: null };
+}
+
 export function PituitaryModel3D({
   tumorCase = 'micro',
   currentPhase = 0,
@@ -522,8 +552,37 @@ export function PituitaryModel3D({
   highlightedStructure = null,
   criticalStructures = [],
   className = '',
+  // Instrument props (from hand tracking)
+  instrumentType = INSTRUMENTS.NONE,
+  instrumentPosition = { x: 0, y: 0, z: 2 },
+  isInstrumentActive = false,
+  onCollision = null,
 }) {
   const [internalViewMode, setInternalViewMode] = useState(viewMode);
+  const [collision, setCollision] = useState({ isColliding: false });
+
+  // Check for collisions when instrument moves
+  useEffect(() => {
+    if (instrumentType !== INSTRUMENTS.NONE) {
+      const result = checkCollision(instrumentPosition);
+      setCollision(result);
+      if (result.isColliding && onCollision) {
+        onCollision(result);
+      }
+    } else {
+      setCollision({ isColliding: false });
+    }
+  }, [instrumentPosition, instrumentType, onCollision]);
+
+  // Dynamic critical structures based on collision
+  const activeCriticalStructures = useMemo(() => {
+    const structures = [...criticalStructures];
+    if (collision.isColliding) {
+      if (collision.structureName === 'Optic Chiasm') structures.push('chiasm');
+      if (collision.structureName?.includes('Carotid')) structures.push('carotids');
+    }
+    return structures;
+  }, [criticalStructures, collision]);
 
   return (
     <div className={`relative bg-gray-900 rounded-lg overflow-hidden ${className}`}>
@@ -569,7 +628,7 @@ export function PituitaryModel3D({
             <OpticChiasm
               opacity={structureOpacity.chiasm}
               showLabels={showLabels}
-              isCritical={criticalStructures.includes('chiasm')}
+              isCritical={activeCriticalStructures.includes('chiasm')}
             />
           )}
 
@@ -577,7 +636,7 @@ export function PituitaryModel3D({
             <CarotidArteries
               opacity={structureOpacity.carotids}
               showLabels={showLabels}
-              isCritical={criticalStructures.includes('carotids')}
+              isCritical={activeCriticalStructures.includes('carotids')}
             />
           )}
 
@@ -585,10 +644,27 @@ export function PituitaryModel3D({
             <SurgicalTrajectory currentPhase={currentPhase} totalPhases={6} />
           )}
 
+          {/* Virtual Surgical Instruments */}
+          <SurgicalInstruments
+            instrumentType={instrumentType}
+            position={instrumentPosition}
+            isActive={isInstrumentActive}
+            collision={collision}
+          />
+
           {/* Grid for reference */}
           <gridHelper args={[4, 20, '#1f2937', '#1f2937']} position={[0, -1, 0]} />
         </SceneSetup>
       </Canvas>
+
+      {/* Collision warning overlay */}
+      {collision.isColliding && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+          <div className="px-4 py-2 bg-red-600/90 rounded-lg text-white text-lg font-bold animate-pulse">
+            ⚠️ DANGER: {collision.structureName}
+          </div>
+        </div>
+      )}
 
       {/* View mode controls */}
       <div className="absolute top-3 right-3 flex flex-col gap-2">
